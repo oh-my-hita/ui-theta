@@ -1,0 +1,10 @@
+{
+  "id": "com.stupidtree.hita.ui.theta",
+  "name": "社区",
+  "version": "0.1.0",
+  "entryClass": "com.stupidtree.hita.ui.theta.ThetaUiPlugin",
+  "apiVersion": 7,
+  "composeVersion": "1.6.8",
+  "capabilities": ["hita.ui.theta"],
+  "mainTabs": [{"id":"theta","title":"社区","order":50}]
+}
