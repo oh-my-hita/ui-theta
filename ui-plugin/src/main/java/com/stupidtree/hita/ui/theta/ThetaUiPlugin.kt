@@ -30,6 +30,7 @@ import com.stupidtree.hita.api.ComposeUiPlugin
 import com.stupidtree.hita.api.PluginUiHost
 import com.stupidtree.hita.api.ThetaService
 import com.stupidtree.hita.api.ThetaArticle
+import com.stupidtree.hita.api.ThetaComment
 import com.stupidtree.hita.api.ThetaTopic
 
 class ThetaUiPlugin : ComposeUiPlugin {
@@ -50,6 +51,8 @@ private fun ThetaScreen(service: ThetaService?) {
     }
     var topics by remember { mutableStateOf<List<ThetaTopic>>(emptyList()) }
     var articles by remember { mutableStateOf<List<ThetaArticle>>(emptyList()) }
+    var comments by remember { mutableStateOf<List<ThetaComment>>(emptyList()) }
+    var selectedArticle by remember { mutableStateOf<ThetaArticle?>(null) }
     var selectedTopic by remember { mutableStateOf<ThetaTopic?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableStateOf(0) }
@@ -65,15 +68,37 @@ private fun ThetaScreen(service: ThetaService?) {
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row {
             Button(onClick = { refresh++ }) { Text("刷新") }
-            selectedTopic?.let { Button(onClick = { selectedTopic = null; articles = emptyList() }, Modifier.padding(start = 8.dp)) { Text("返回话题") } }
+            selectedTopic?.let { Button(onClick = { selectedTopic = null; articles = emptyList(); selectedArticle = null; comments = emptyList() }, Modifier.padding(start = 8.dp)) { Text("返回话题") } }
+            selectedArticle?.let { Button(onClick = { selectedArticle = null; comments = emptyList() }, Modifier.padding(start = 8.dp)) { Text("返回文章") } }
         }
         error?.let { Text("错误：$it", Modifier.padding(top = 8.dp)) }
+        val article = selectedArticle
+        if (article != null) {
+            LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
+                item { Text(article.title.ifBlank { article.author }, style = MaterialTheme.typography.h6)
+                    Text(article.content, Modifier.padding(vertical = 8.dp)) }
+                items(comments, key = { it.id }) { c ->
+                    Card(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                        Column(Modifier.padding(10.dp)) {
+                            Text(c.author, style = MaterialTheme.typography.caption)
+                            Text(c.content)
+                        }
+                    }
+                }
+            }
+            return@Column
+        }
         val topic = selectedTopic
         if (topic != null) {
             LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
                 items(articles, key = { it.id }) { a ->
                     Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Column(Modifier.padding(12.dp)) {
+                        Column(Modifier.padding(12.dp).clickable {
+                            selectedArticle = a
+                            service.comments(a.id, 1).observeOnce { st ->
+                                if (st.state == DataState.STATE.SUCCESS) comments = st.data.orEmpty() else error = st.message
+                            }
+                        }) {
                             Text(a.title.ifBlank { a.author }, style = MaterialTheme.typography.subtitle1)
                             Text(a.content, style = MaterialTheme.typography.caption, maxLines = 4)
                         }
