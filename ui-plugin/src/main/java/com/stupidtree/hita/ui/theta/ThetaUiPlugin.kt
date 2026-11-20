@@ -2,7 +2,9 @@ package com.stupidtree.hita.ui.theta
 
 import android.content.Context
 import android.view.View
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,6 +29,7 @@ import com.stupidtree.component.data.DataState
 import com.stupidtree.hita.api.ComposeUiPlugin
 import com.stupidtree.hita.api.PluginUiHost
 import com.stupidtree.hita.api.ThetaService
+import com.stupidtree.hita.api.ThetaArticle
 import com.stupidtree.hita.api.ThetaTopic
 
 class ThetaUiPlugin : ComposeUiPlugin {
@@ -46,6 +49,8 @@ private fun ThetaScreen(service: ThetaService?) {
         return
     }
     var topics by remember { mutableStateOf<List<ThetaTopic>>(emptyList()) }
+    var articles by remember { mutableStateOf<List<ThetaArticle>>(emptyList()) }
+    var selectedTopic by remember { mutableStateOf<ThetaTopic?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableStateOf(0) }
     LaunchedEffect(refresh) {
@@ -58,11 +63,33 @@ private fun ThetaScreen(service: ThetaService?) {
         }
     }
     Column(Modifier.fillMaxSize().padding(12.dp)) {
-        Button(onClick = { refresh++ }) { Text("刷新") }
+        Row {
+            Button(onClick = { refresh++ }) { Text("刷新") }
+            selectedTopic?.let { Button(onClick = { selectedTopic = null; articles = emptyList() }, Modifier.padding(start = 8.dp)) { Text("返回话题") } }
+        }
         error?.let { Text("错误：$it", Modifier.padding(top = 8.dp)) }
+        val topic = selectedTopic
+        if (topic != null) {
+            LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
+                items(articles, key = { it.id }) { a ->
+                    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(Modifier.padding(12.dp)) {
+                            Text(a.title.ifBlank { a.author }, style = MaterialTheme.typography.subtitle1)
+                            Text(a.content, style = MaterialTheme.typography.caption, maxLines = 4)
+                        }
+                    }
+                }
+            }
+            return@Column
+        }
         LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp)) {
             items(topics, key = { it.id }) { topic ->
-                Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                Card(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
+                    selectedTopic = topic
+                    service.articles(topic.id, 1).observeOnce { st ->
+                        if (st.state == DataState.STATE.SUCCESS) articles = st.data.orEmpty() else error = st.message
+                    }
+                }) {
                     Column(Modifier.padding(12.dp)) {
                         Text(topic.name, style = MaterialTheme.typography.subtitle1)
                         if (topic.description.isNotBlank()) Text(topic.description, style = MaterialTheme.typography.caption)
