@@ -6,6 +6,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url = uri("https://cdn.jsdelivr.net/gh/oh-my-hita/plugin-sdk@master/maven") }
         maven { url = uri("https://raw.githubusercontent.com/oh-my-hita/plugin-sdk/master/maven") }
     }
 }
